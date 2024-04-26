@@ -1,0 +1,41 @@
+services:
+  network-deploy-service:
+    networks:
+      - "eazybank"
+
+  microservice-base-config:
+    extends:
+      service: network-deploy-service
+    deploy:
+      resources:
+        limits:
+          memory: 700m
+    environment:
+      JAVA_TOOL_OPTIONS: "-javaagent:/app/libs/opentelemetry-javaagent-1.32.0.jar" # This defines the path where this jar is present inside our project/microservices
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://tempo:4317
+      OTEL_METRICS_EXPORTER: none
+
+  microservice-configserver-config:
+    extends:
+      service: microservice-base-config
+    depends_on:
+      configserver:
+        condition: service_healthy
+      # We should mention all the dependencies in this case Rabbitmq as well, but since we have already mentioned Configserver
+      # which already depends on Rabbitmq. So accounts, loans and cards will always have Rabbitmq up and running.
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      #This will override the default spring.config.import in the appication.yml. We can't use that property as it has
+      #localhost which will not work in docker container. Here we replaced localhost with the name of service i.e. config server
+      SPRING_CONFIG_IMPORT: "configserver:http://configserver:8071/"
+
+  microservice-eureka-config:
+    extends:
+      service: microservice-configserver-config
+    depends_on:
+      eurekaserver:
+        condition: service_healthy
+    environment:
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: "http://eurekaserver:8070/eureka"
+
+
