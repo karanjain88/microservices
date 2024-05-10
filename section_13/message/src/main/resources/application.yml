@@ -1,0 +1,25 @@
+server:
+  port: 9010
+
+spring:
+  application:
+    name: "message"
+  cloud:
+    function:
+      definition: email|sms
+    stream:
+      bindings:
+        emailsms-in-0:
+          # In case of input binding destination is a 'message queue' NOT the 'exchange'.
+          # In the below case we are keeping the name of the queue as 'send-communication'
+          destination: send-communication
+          group: ${spring.application.name}
+        emailsms-out-0:
+          # Since we are using Spring Cloud Stream in this microservice we do not need to use StreamBridge to send the output to this exchange(communication-sent)
+          destination: communication-sent
+  rabbitmq:
+    host: localhost
+    port: 5672
+    username: guest
+    password: guest
+    connection-timeout: 10s
